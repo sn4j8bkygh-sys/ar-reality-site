@@ -3,7 +3,7 @@
 </style></head><body><main><h1>Закрытая галерея</h1><p><small>Только для владельца сайта. Вход требует аккаунта Supabase, добавленного в список администраторов.</small></p>
 <section><h2>Вход администратора</h2><form id="login"><input id="email" type="email" placeholder="Адрес электронной почты" required><input id="password" type="password" placeholder="Пароль" required><button>Войти</button></form><button id="logout" hidden>Выйти</button><p id="status" aria-live="polite"></p></section>
 <section><h2>Фотографии посетителей</h2><button id="refresh">Обновить галерею</button><div class="grid" id="gallery"></div></section>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script>
+</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=4"></script><script>
 const cfg=window.SITE_CONFIG||{},configured=cfg.SUPABASE_URL&&!cfg.SUPABASE_URL.includes('YOUR_')&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_ANON_KEY.includes('YOUR_');
 const client=configured?supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY):null;
 const status=document.getElementById('status'),gallery=document.getElementById('gallery'),logout=document.getElementById('logout');
