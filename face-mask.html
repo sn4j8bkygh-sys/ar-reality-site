@@ -1,113 +1,162 @@
+
 <!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101114">
-<title>Reality — Face Mask Test</title>
+<title>Reality — AR Face Test</title>
 <style>
 :root{color-scheme:dark;--bg:#101114;--panel:#1a1c21;--line:#30333b;--text:#f4f5f7;--muted:#aeb3bf;--accent:#d9ff70}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:720px;margin:auto;padding:20px 16px 40px}
-h1{font-size:1.7rem;margin:.4rem 0}
-p{color:var(--muted)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:720px;margin:auto;padding:20px 16px 40px}h1{font-size:1.7rem;margin:.4rem 0}p{color:var(--muted)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:16px}
 .stage{position:relative;aspect-ratio:3/4;max-height:70vh;background:#08090b;border-radius:14px;overflow:hidden}
 video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-canvas{pointer-events:none}
-button{width:100%;padding:15px;border:0;border-radius:13px;background:var(--accent);color:#111;font-weight:800;font-size:1rem;margin-top:12px}
-button:disabled{opacity:.45}
-#status{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font-size:.9rem;margin-top:12px}
-.small{font-size:.82rem}
+canvas{pointer-events:none}button{width:100%;padding:15px;border:0;border-radius:13px;background:var(--accent);color:#111;font-weight:800;font-size:1rem;margin-top:12px}
+button:disabled{opacity:.45}#status{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font-size:.9rem;margin-top:12px}
+label{display:flex;gap:10px;align-items:flex-start;margin-top:14px;color:var(--muted);font-size:.92rem}
+input[type=checkbox]{margin-top:4px;width:19px;height:19px;flex:0 0 auto}.small{font-size:.82rem}
 </style>
 </head>
 <body>
 <main>
 <p>REALITY EXPERIENCE / TEST</p>
-<h1>Отслеживание лица</h1>
-<p>Сначала проверяем камеру и распознавание лица. Оригинальная 3D-маска из <code>model.reality</code> пока не подключена.</p>
+<h1>AR-маска и фото</h1>
+<p>Разреши камеру и отметь согласие, если хочешь участвовать. Когда лицо будет устойчиво распознано, сайт автоматически сделает фото и отправит его в Telegram владельцу сайта. Отправка не начинается без согласия.</p>
 <section class="panel">
 <div class="stage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas></div>
-<button id="start">Включить фронтальную камеру</button>
-<div id="status" role="status">Нажми кнопку и разреши доступ к камере.</div>
+<label><input id="consent" type="checkbox"><span>Я согласен(на), что после распознавания моего лица сайт автоматически сделает один снимок и отправит его владельцу сайта в Telegram. Я понимаю, что могу не ставить галочку и закрыть страницу.</span></label>
+<button id="start">Согласиться и включить камеру</button>
+<div id="status" role="status" aria-live="polite">Камера выключена. Фото не делается до согласия.</div>
 </section>
 <section class="panel">
-<strong>Что должно произойти</strong>
-<p class="small">После загрузки на лице появятся зелёные контрольные точки. Если загрузка не получится, страница покажет этап и подробности ошибки.</p>
+<strong>О конфиденциальности</strong>
+<p class="small">Камера работает в браузере. Фото отправляется только после отметки согласия и срабатывания распознавания. После отправки камера выключается. Не включай камеру для другого человека без его согласия.</p>
+<p class="small"><strong>Важно:</strong> сейчас это прототип распознавания лица с контрольными точками, а не готовая 3D-маска. Файл <code>model.reality</code> браузер напрямую не отображает.</p>
 </section>
 </main>
 <script type="module">
+const SUPABASE_URL='https://mjlvlhncaejrapaljesy.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_H_TQdTtXZZLGWcMcAivOxw_7jTnlkh9';
 const video=document.querySelector('#video');
 const canvas=document.querySelector('#overlay');
 const ctx=canvas.getContext('2d');
 const status=document.querySelector('#status');
 const start=document.querySelector('#start');
-let stream=null, landmarker=null, raf=0, vision=null;
+const consent=document.querySelector('#consent');
+let stream=null,landmarker=null,raf=0,sending=false,alignedFrames=0;
 
 function resize(){
-  const r=canvas.getBoundingClientRect();
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.round(r.width*dpr);
-  canvas.height=Math.round(r.height*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+ const r=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-window.addEventListener('resize',resize);
-resize();
+window.addEventListener('resize',resize);resize();
 
-function showError(stage,e){
-  const detail=e?.message || e?.stack || String(e);
-  status.textContent=`Ошибка на этапе: ${stage}\n${detail}\n\nПроверь интернет и открой страницу непосредственно в Safari.`;
+function stopCamera(){
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ video.srcObject=null;
 }
-start.addEventListener('click',async()=>{
-  start.disabled=true;
-  let stage='загрузка библиотеки';
-  status.textContent='Шаг 1/3: загружаю библиотеку распознавания лица…';
-  try{
-    vision=await import('https://esm.sh/@mediapipe/tasks-vision');
-    stage='доступ к камере';
-    status.textContent='Шаг 2/3: запрашиваю доступ к камере…';
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'}},audio:false});
-    video.srcObject=stream;
-    await video.play();
-    stage='загрузка модели распознавания';
-    status.textContent='Шаг 3/3: загружаю модель распознавания лица…';
-    const files=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm');
-    landmarker=await vision.FaceLandmarker.createFromOptions(files,{
-      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'CPU'},
-      runningMode:'VIDEO',numFaces:1
-    });
-    resize();
-    start.textContent='Камера включена';
-    status.textContent='Готово. Поворачивай голову — контрольные точки должны двигаться.';
-    draw();
-  }catch(e){
-    showError(stage,e);
-    start.disabled=false;
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;}
-  }
-});
+
+async function sendPhoto(blob){
+ status.textContent='Отправляю фото в Telegram…';
+ const form=new FormData();
+ form.append('photo',blob,'ar-face.jpg');
+ const response=await fetch(SUPABASE_URL+'/functions/v1/send-telegram-photo',{
+  method:'POST',
+  headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY},
+  body:form
+ });
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(result.error||'Ошибка отправки: HTTP '+response.status);
+ status.textContent='Фото отправлено. Камера выключается.';
+ stopCamera();
+ start.textContent='Готово';
+ start.disabled=false;
+}
+
+async function captureOnce(){
+ if(sending||!consent.checked)return;
+ sending=true;
+ try{
+  const snap=document.createElement('canvas');
+  snap.width=video.videoWidth;snap.height=video.videoHeight;
+  snap.getContext('2d').drawImage(video,0,0,snap.width,snap.height);
+  const blob=await new Promise(resolve=>snap.toBlob(resolve,'image/jpeg',0.88));
+  if(!blob)throw new Error('Не удалось подготовить фото');
+  await sendPhoto(blob);
+ }catch(e){
+  status.textContent='Фото не отправлено: '+(e.message||String(e))+
+   '\nПроверь настройку Telegram-функции в Supabase.';
+  sending=false;start.disabled=false;
+ }
+}
+
 function draw(){
-  if(!landmarker||video.readyState<2){raf=requestAnimationFrame(draw);return;}
-  const w=canvas.clientWidth,h=canvas.clientHeight;
-  ctx.clearRect(0,0,w,h);
-  try{
-    const out=landmarker.detectForVideo(video,performance.now());
-    const face=out.faceLandmarks?.[0];
-    if(face){
-      ctx.fillStyle='#d9ff70';
-      for(const i of [10,33,133,152,263,362,1,61,291,234,454]){
-        const p=face[i]; if(!p)continue;
-        ctx.beginPath();ctx.arc((1-p.x)*w,p.y*h,3.2,0,Math.PI*2);ctx.fill();
-      }
-    }
-  }catch(e){showError('распознавание лица',e);}
-  raf=requestAnimationFrame(draw);
+ if(!landmarker||video.readyState<2){raf=requestAnimationFrame(draw);return;}
+ const w=canvas.clientWidth,h=canvas.clientHeight;
+ ctx.clearRect(0,0,w,h);
+ try{
+  const out=landmarker.detectForVideo(video,performance.now());
+  const face=out.faceLandmarks?.[0];
+  if(face){
+   ctx.fillStyle='#d9ff70';
+   for(const i of [10,33,133,152,263,362,1,61,291,234,454]){
+    const p=face[i];if(!p)continue;
+    ctx.beginPath();ctx.arc((1-p.x)*w,p.y*h,3.2,0,Math.PI*2);ctx.fill();
+   }
+   const xs=face.map(p=>p.x),ys=face.map(p=>p.y);
+   const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+   const cx=(minX+maxX)/2,cy=(minY+maxY)/2,fw=maxX-minX,fh=maxY-minY;
+   const aligned=cx>.30&&cx<.70&&cy>.25&&cy<.75&&fw>.18&&fh>.22;
+   alignedFrames=aligned?alignedFrames+1:0;
+   if(aligned){
+    status.textContent=consent.checked
+     ?'Лицо в кадре. Удерживай положение для автоматического фото.'
+     :'Лицо распознано. Отметь согласие, если хочешь разрешить автоматическое фото.';
+   }else if(!sending)status.textContent='Помести лицо по центру кадра.';
+   if(consent.checked&&alignedFrames>=45&&!sending)captureOnce();
+  }else{
+   alignedFrames=0;
+   if(!sending)status.textContent='Ищу лицо… Поднеси лицо к камере.';
+  }
+ }catch(e){status.textContent='Ошибка распознавания: '+(e.message||String(e));}
+ raf=requestAnimationFrame(draw);
 }
+
+start.addEventListener('click',async()=>{
+ if(!consent.checked){
+  status.textContent='Сначала отметь согласие, если согласен(на) на автоматический снимок и отправку.';
+  return;
+ }
+ start.disabled=true;
+ status.textContent='Шаг 1/3: загружаю распознавание лица…';
+ try{
+  const vision=await import('https://esm.sh/@mediapipe/tasks-vision');
+  status.textContent='Шаг 2/3: запрашиваю доступ к камере…';
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'}},audio:false});
+  video.srcObject=stream;await video.play();
+  status.textContent='Шаг 3/3: загружаю модель лица…';
+  const files=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm');
+  landmarker=await vision.FaceLandmarker.createFromOptions(files,{
+   baseOptions:{
+    modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+    delegate:'CPU'
+   },
+   runningMode:'VIDEO',numFaces:1
+  });
+  resize();status.textContent='Готово. Помести лицо по центру кадра.';
+  draw();
+ }catch(e){
+  status.textContent='Ошибка: '+(e?.message||String(e))+'\nПроверь интернет и разрешение камеры.';
+  stopCamera();start.disabled=false;
+ }
+});
+
 window.addEventListener('pagehide',()=>{
-  cancelAnimationFrame(raf);
-  if(stream)stream.getTracks().forEach(t=>t.stop());
-  if(landmarker?.close)landmarker.close();
+ cancelAnimationFrame(raf);stopCamera();
+ if(landmarker?.close)landmarker.close();
 });
 </script>
 </body>
