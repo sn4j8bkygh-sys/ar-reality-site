@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114"><title>Reality — AR Experience</title>
+<style>
+:root{color-scheme:dark;--bg:#101114;--panel:#1a1c21;--line:#30333b;--text:#f4f5f7;--muted:#aeb3bf;--accent:#d9ff70}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#252932 0,#101114 58%);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+main{width:min(760px,100%);margin:auto;padding:26px 18px 48px}header{display:flex;align-items:center;gap:10px;margin-bottom:36px;font-weight:750;letter-spacing:.02em}.mark{width:34px;height:34px;border-radius:11px;background:var(--accent);color:#101114;display:grid;place-items:center;font-weight:900}
+.eyebrow{color:var(--accent);text-transform:uppercase;letter-spacing:.14em;font-size:.74rem;font-weight:800}h1{font-size:clamp(2.2rem,8vw,4.3rem);line-height:.98;letter-spacing:-.055em;margin:10px 0 18px}.lead{color:var(--muted);max-width:560px;font-size:1.05rem}
+.card{margin-top:28px;border:1px solid var(--line);border-radius:24px;background:rgba(26,28,33,.88);padding:22px}.preview{border-radius:17px;border:1px dashed #484d58;min-height:190px;display:grid;place-items:center;text-align:center;padding:24px;background:linear-gradient(135deg,#22252c,#15171b)}.cube{font-size:3.5rem;line-height:1.2}.preview p{margin:10px 0 0;color:var(--muted)}
+button,.button{appearance:none;border:0;border-radius:13px;padding:15px 18px;font-size:1rem;font-weight:750;text-decoration:none;display:inline-flex;justify-content:center;align-items:center;gap:9px;cursor:pointer}.primary{background:var(--accent);color:#101114}.secondary{background:#2b2e36;color:var(--text);border:1px solid #414550}.actions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}.note,.status{font-size:.88rem;color:var(--muted);margin:14px 0 0;overflow-wrap:anywhere}h2{font-size:1.25rem;margin:0 0 8px}.section-text{color:var(--muted);margin-top:0}
+.camera-box{display:none;margin-top:18px}.camera-box.visible{display:block}video,canvas{width:100%;border-radius:14px;background:#08090b;max-height:60vh;object-fit:contain}label{display:flex;align-items:flex-start;gap:10px;color:var(--muted);font-size:.9rem;margin:15px 0}input[type=checkbox]{margin-top:5px;accent-color:var(--accent);width:18px;height:18px;flex:0 0 auto}footer{margin-top:30px;color:#8d929d;font-size:.8rem}a{color:inherit}@media(min-width:560px){.actions{grid-template-columns:1fr 1fr}}
+</style></head>
+<body><main>
+<header><div class="mark">3D</div><span>REALITY EXPERIENCE</span></header>
+<div class="eyebrow">Interactive 3D scene</div><h1>Посмотри<br>в своём пространстве.</h1>
+<p class="lead">Открой сцену на iPhone и попробуй разместить 3D-объект в реальном окружении, если устройство и версия iOS поддерживают этот формат.</p>
+<section class="card"><div class="preview"><div><div class="cube">◇</div><strong>3D Reality Scene</strong><p>Сцена из файла model.reality</p></div></div>
+<div class="actions"><a class="button primary" rel="ar" href="model.reality">Открыть AR-сцену ↗</a><a class="button secondary" href="model.reality" download>Скачать сцену</a></div>
+<p class="note">Открой страницу в Safari на iPhone. Совместимость именно этого файла с AR Quick Look пока не подтверждена. Если не запускается, потребуется экспортировать сцену в USDZ из совместимого приложения.</p></section>
+<section class="card"><h2>Сделать и отправить фото</h2><p class="section-text">Камера включается только после нажатия. Фото будет отправлено в хранилище только после отдельного согласия и нажатия кнопки отправки. Для отправки нужно заполнить настройки Supabase по инструкции.</p>
+<button class="secondary" id="startCamera" type="button">Включить фронтальную камеру</button><div class="camera-box" id="cameraBox">
+<video id="video" autoplay playsinline muted></video>
+<label><input type="checkbox" id="consent"><span>Я согласен(на) сделать фотографию и отправить её владельцу этого сайта для просмотра в закрытой галерее. Я понимаю, что могу не отправлять снимок.</span></label>
+<div class="actions"><button class="secondary" id="takePhoto" type="button" disabled>Сделать фото</button><button class="primary" id="sendPhoto" type="button" disabled>Отправить фото</button></div>
+<canvas id="canvas" hidden></canvas><div class="status" id="status" role="status" aria-live="polite"></div></div></section>
+<details class="card"><summary>Конфиденциальность</summary><p class="section-text">Съёмка начинается после разрешения браузера. Отправка не происходит автоматически. Загруженные фотографии доступны только авторизованному администратору при корректной настройке политик хранилища. Укажите контакт для вопросов об удалении фото и публикуйте сайт только после проверки настроек.</p></details>
+<footer>AR зависит от поддержки формата на устройстве. Камера требует HTTPS и разрешения пользователя.</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const start=document.getElementById('startCamera'),box=document.getElementById('cameraBox'),video=document.getElementById('video'),consent=document.getElementById('consent'),take=document.getElementById('takePhoto'),send=document.getElementById('sendPhoto'),canvas=document.getElementById('canvas'),status=document.getElementById('status');
+let stream=null,photoBlob=null;
+const configured=window.SITE_CONFIG && SITE_CONFIG.SUPABASE_URL && SITE_CONFIG.SUPABASE_ANON_KEY && !SITE_CONFIG.SUPABASE_URL.includes('YOUR_') && !SITE_CONFIG.SUPABASE_ANON_KEY.includes('YOUR_');
+const supabaseClient=configured&&window.supabase?window.supabase.createClient(SITE_CONFIG.SUPABASE_URL,SITE_CONFIG.SUPABASE_ANON_KEY):null;
+start.addEventListener('click',async()=>{if(!navigator.mediaDevices?.getUserMedia){status.textContent='Открой сайт через HTTPS в современном Safari и разреши доступ к камере.';box.classList.add('visible');return;}try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;box.classList.add('visible');status.textContent='Камера включена. Снимок не будет сделан, пока ты не нажмёшь «Сделать фото».';}catch(e){box.classList.add('visible');status.textContent='Доступ к камере не получен. Проверь разрешения Safari.';}});
+function sync(){take.disabled=!consent.checked;send.disabled=!consent.checked||!photoBlob||!supabaseClient}
+consent.addEventListener('change',sync);
+take.addEventListener('click',()=>{if(!consent.checked||!video.videoWidth)return;canvas.width=video.videoWidth;canvas.height=video.videoHeight;const c=canvas.getContext('2d');c.translate(canvas.width,0);c.scale(-1,1);c.drawImage(video,0,0,canvas.width,canvas.height);canvas.toBlob(b=>{photoBlob=b;sync();status.textContent=supabaseClient?'Снимок готов. Нажми «Отправить фото», если согласен(на).':'Снимок готов, но отправка пока не настроена. Сохрани сайт с настройками Supabase из README.';},'image/jpeg',.88);});
+send.addEventListener('click',async()=>{if(!consent.checked||!photoBlob||!supabaseClient)return;send.disabled=true;status.textContent='Отправляем…';try{const name=`${Date.now()}-${crypto.randomUUID()}.jpg`;const {error}=await supabaseClient.storage.from('visitor-photos').upload(name,photoBlob,{contentType:'image/jpeg',upsert:false});if(error)throw error;status.textContent='Фото отправлено. Оно доступно только в закрытой галерее администратора.';photoBlob=null;consent.checked=false;sync();}catch(e){status.textContent='Не удалось отправить фото. Проверь настройки Supabase и политики хранилища.';sync();}});
+window.addEventListener('pagehide',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());});
+</script></body></html>
