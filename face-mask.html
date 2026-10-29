@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101114"><title>Reality — Face Mask Prototype</title>
+<style>
+:root{color-scheme:dark;--bg:#101114;--panel:#1a1c21;--line:#30333b;--text:#f4f5f7;--muted:#aeb3bf;--accent:#d9ff70}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:720px;margin:auto;padding:20px 16px 40px}h1{font-size:1.7rem;margin:.4rem 0}p{color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:16px}.stage{position:relative;aspect-ratio:3/4;max-height:70vh;background:#08090b;border-radius:14px;overflow:hidden}video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}canvas{pointer-events:none}button{width:100%;padding:15px;border:0;border-radius:13px;background:var(--accent);color:#111;font-weight:800;font-size:1rem;margin-top:12px}button:disabled{opacity:.45}#status{white-space:pre-wrap;color:var(--muted);font-size:.9rem;margin-top:12px}.small{font-size:.82rem}.warn{color:#ffcc80}
+</style>
+</head><body><main><p>REALITY EXPERIENCE / TEST</p><h1>Отслеживание лица</h1><p>Техническая заготовка для Safari. Она не заменяет исходную маску: сначала нужно получить веб-модель <code>mask.glb</code> из вашего <code>model.reality</code>.</p><section class="panel"><div class="stage"><video id="video" autoplay muted playsinline></video><canvas id="overlay"></canvas></div><button id="start">Включить фронтальную камеру</button><div id="status" role="status">Камера не включена. Съёмка и отправка фото на этой тестовой странице отсутствуют.</div></section><section class="panel"><strong>Что уже предусмотрено</strong><p class="small">MediaPipe Face Landmarker отслеживает ключевые точки лица в реальном времени. Когда появится настоящая модель GLB, её можно привязать к точкам лба, переносицы и скул. До этого этапа я не рисую подменную маску и не включаю страницу в основной сайт.</p></section></main>
+<script type="module">
+const video=document.querySelector('#video'), canvas=document.querySelector('#overlay'), ctx=canvas.getContext('2d'), status=document.querySelector('#status'), start=document.querySelector('#start');
+let stream, landmarker, raf=0;
+function resize(){const r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+window.addEventListener('resize',resize);resize();
+start.addEventListener('click',async()=>{start.disabled=true;status.textContent='Загружаю модель отслеживания лица…';try{
+  const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+  const files=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm');
+  landmarker=await vision.FaceLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numFaces:1});
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});video.srcObject=stream;await video.play();resize();status.textContent='Отслеживание запущено. Сейчас отображаются контрольные точки, а не маска: оригинальная 3D-геометрия ещё не преобразована.';start.textContent='Камера включена';draw();
+}catch(e){status.textContent='Не удалось запустить камеру или модель: '+(e?.message||e)+'\nПроверь разрешение Safari и интернет-соединение.';start.disabled=false;}
+});
+function draw(){if(!landmarker||video.readyState<2){raf=requestAnimationFrame(draw);return}if(canvas.width!==Math.round(canvas.clientWidth*Math.min(devicePixelRatio||1,2)))resize();const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);const out=landmarker.detectForVideo(video,performance.now());const face=out.faceLandmarks?.[0];if(face){ctx.fillStyle='#d9ff70';for(const i of [10,33,133,152,263,362,1,61,291,234,454]){const p=face[i];if(p){ctx.beginPath();ctx.arc(p.x*w,p.y*h,3.2,0,Math.PI*2);ctx.fill()}}}raf=requestAnimationFrame(draw)}
+window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);stream?.getTracks().forEach(t=>t.stop());landmarker?.close()});
+</script></body></html>
