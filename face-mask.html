@@ -84,7 +84,7 @@ start.addEventListener('click',async()=>{
     status.textContent='Шаг 3/3: загружаю модель распознавания лица…';
 
     const files=await vision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm'
     );
 
     landmarker=await vision.FaceLandmarker.createFromOptions(files,{
