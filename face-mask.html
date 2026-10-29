@@ -1,192 +1,292 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101114">
 <title>На кого ты похож?</title>
+
 <style>
-:root{color-scheme:dark;--bg:#101114;--panel:#1a1c21;--line:#30333b;--text:#f4f5f7;--muted:#aeb3bf;--accent:#d9ff70}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;justify-content:center;padding:24px 16px}
-main{width:100%;max-width:480px}
-h1{text-align:center;font-size:30px;line-height:1.15;margin:12px 0 8px}
-p{text-align:center;color:var(--muted);margin:0 0 20px}
-.frame{aspect-ratio:3/4;overflow:hidden;border:1px solid var(--line);border-radius:22px;background:#08090b;display:flex;align-items:center;justify-content:center}
-video,img{width:100%;height:100%;object-fit:cover}
-video{transform:scaleX(-1)}
-.placeholder{text-align:center;padding:28px;color:var(--muted)}
-.actions{display:grid;gap:10px;margin-top:16px}
-button{border:0;border-radius:14px;padding:15px 18px;font:600 16px -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer;min-height:50px}
-.primary{background:var(--accent);color:#141610}
-.secondary{background:var(--panel);color:var(--text);border:1px solid var(--line)}
-button:disabled{opacity:.45}
-.status{text-align:center;color:var(--muted);font-size:14px;margin-top:12px;min-height:22px}
-.note{text-align:center;color:var(--muted);font-size:13px;margin-top:14px}
-[hidden]{display:none!important}
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px;
+  min-height: 100vh;
+  background: #101114;
+  color: #f4f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+main {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 30px;
+  margin: 12px 0 8px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #aeb3bf;
+  margin-bottom: 20px;
+}
+
+.frame {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid #30333b;
+  border-radius: 22px;
+  background: #08090b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.placeholder {
+  text-align: center;
+  padding: 28px;
+  color: #aeb3bf;
+}
+
+.actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+button {
+  width: 100%;
+  min-height: 54px;
+  padding: 15px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary {
+  background: #d9ff70;
+  color: #141610;
+}
+
+.secondary {
+  background: #1a1c21;
+  border: 1px solid #30333b;
+  color: #f4f5f7;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.status {
+  min-height: 24px;
+  margin-top: 14px;
+  text-align: center;
+  color: #aeb3bf;
+  font-size: 14px;
+}
+
+.notice {
+  margin-top: 16px;
+  text-align: center;
+  color: #aeb3bf;
+  font-size: 13px;
+}
+
+[hidden] {
+  display: none !important;
+}
 </style>
 </head>
+
 <body>
 <main>
-<h1>На кого ты похож?</h1>
-<p>Включи камеру и сделай фото</p>
+  <h1>На кого ты похож?</h1>
 
-<div class="frame">
-  <div id="placeholder" class="placeholder">Нажми «Включить камеру», чтобы начать</div>
-  <video id="video" autoplay playsinline muted hidden></video>
-  <img id="preview" alt="Предпросмотр фото" hidden>
-</div>
+  <p class="subtitle">
+    Сделай фото и узнай!
+  </p>
 
-<div class="actions">
-  <button id="start" class="primary">Включить камеру</button>
-  <button id="capture" class="primary" hidden>Сделать фото</button>
-  <button id="send" class="primary" hidden>Подтвердить и отправить фото</button>
-  <button id="retake" class="secondary" hidden>Сделать другое фото</button>
-</div>
+  <div class="frame">
+    <div id="placeholder" class="placeholder">
+      Нажми «Включить камеру», чтобы начать
+    </div>
 
-<div id="status" class="status" role="status" aria-live="polite"></div>
-<div class="note">Фото отправляется владельцу сайта в Telegram только после твоего подтверждения.</div>
+    <video id="video" autoplay playsinline muted hidden></video>
+  </div>
+
+  <div class="actions">
+    <button id="start" class="primary">
+      Включить камеру
+    </button>
+
+    <button id="capture" class="primary" hidden>
+      Сделать фото
+    </button>
+
+    <button id="again" class="secondary" hidden>
+      Сделать ещё фото
+    </button>
+  </div>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+
+  <div class="notice">
+    При нажатии «Сделать фото» снимок сразу отправляется владельцу сайта в Telegram.
+  </div>
 </main>
 
 <script>
-const ENDPOINT="https://mjlvlhncaejrapaljesy.supabase.co/functions/v1/send-telegram-photo";
-const video=document.getElementById("video");
-const preview=document.getElementById("preview");
-const placeholder=document.getElementById("placeholder");
-const startBtn=document.getElementById("start");
-const captureBtn=document.getElementById("capture");
-const sendBtn=document.getElementById("send");
-const retakeBtn=document.getElementById("retake");
-const statusEl=document.getElementById("status");
+const ENDPOINT =
+  "https://mjlvlhncaejrapaljesy.supabase.co/functions/v1/send-telegram-photo";
 
-let stream=null;
-let photoBlob=null;
+const video = document.getElementById("video");
+const placeholder = document.getElementById("placeholder");
+const startButton = document.getElementById("start");
+const captureButton = document.getElementById("capture");
+const againButton = document.getElementById("again");
+const statusBox = document.getElementById("status");
 
-function status(message){statusEl.textContent=message}
+let stream = null;
+let sending = false;
 
-function stopCamera(){
-  if(stream){
-    stream.getTracks().forEach(track=>track.stop());
-    stream=null;
-  }
-  video.srcObject=null;
+function setStatus(message) {
+  statusBox.textContent = message;
 }
 
-startBtn.addEventListener("click",async()=>{
-  if(!navigator.mediaDevices?.getUserMedia){
-    status("Камера недоступна. Открой страницу через HTTPS в Safari.");
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.srcObject = null;
+}
+
+async function startCamera() {
+  if (!navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia) {
+    setStatus("Открой сайт через HTTPS в Safari и разреши камеру.");
     return;
   }
 
-  startBtn.disabled=true;
-  status("Запрашиваем доступ к камере…");
+  startButton.disabled = true;
+  setStatus("Включаем камеру…");
 
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:"user"},
-      audio:false
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false
     });
 
-    video.srcObject=stream;
+    video.srcObject = stream;
     await video.play();
 
-    placeholder.hidden=true;
-    preview.hidden=true;
-    video.hidden=false;
-    startBtn.hidden=true;
-    captureBtn.hidden=false;
+    placeholder.hidden = true;
+    video.hidden = false;
+    startButton.hidden = true;
+    captureButton.hidden = false;
 
-    status("Камера включена. Нажми «Сделать фото», когда будешь готов.");
-  }catch(error){
-    status("Не удалось включить камеру. Разреши доступ к камере в настройках браузера.");
-    startBtn.disabled=false;
+    setStatus("Камера готова. Нажми «Сделать фото».");
+  } catch (error) {
+    stopCamera();
+    startButton.disabled = false;
+    setStatus("Не удалось включить камеру. Проверь разрешение в браузере.");
   }
-});
+}
 
-captureBtn.addEventListener("click",()=>{
-  if(!video.videoWidth){
-    status("Камера ещё загружается. Попробуй через секунду.");
+async function takeAndSendPhoto() {
+  if (sending) return;
+
+  if (!video.videoWidth || !video.videoHeight) {
+    setStatus("Камера ещё загружается. Попробуй через секунду.");
     return;
   }
 
-  const canvas=document.createElement("canvas");
-  canvas.width=video.videoWidth;
-  canvas.height=video.videoHeight;
+  sending = true;
+  captureButton.disabled = true;
+  setStatus("Делаем фото и отправляем…");
 
-  const context=canvas.getContext("2d");
-  context.translate(canvas.width,0);
-  context.scale(-1,1);
-  context.drawImage(video,0,0,canvas.width,canvas.height);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-  canvas.toBlob(blob=>{
-    if(!blob){
-      status("Не удалось сделать фото. Попробуй ещё раз.");
-      return;
-    }
+    const context = canvas.getContext("2d");
 
-    photoBlob=blob;
-    preview.src=URL.createObjectURL(blob);
-    preview.hidden=false;
-    video.hidden=true;
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    captureBtn.hidden=true;
-    sendBtn.hidden=false;
-    retakeBtn.hidden=false;
-
-    status("Проверь фото. Оно ещё не отправлено.");
-  },"image/jpeg",0.9);
-});
-
-retakeBtn.addEventListener("click",()=>{
-  photoBlob=null;
-  preview.hidden=true;
-  video.hidden=false;
-  sendBtn.hidden=true;
-  retakeBtn.hidden=true;
-  captureBtn.hidden=false;
-  status("Можешь сделать новый снимок.");
-});
-
-sendBtn.addEventListener("click",async()=>{
-  if(!photoBlob)return;
-
-  const confirmed=confirm("Отправить это фото владельцу сайта в Telegram?");
-  if(!confirmed)return;
-
-  sendBtn.disabled=true;
-  retakeBtn.disabled=true;
-  status("Отправляем фото…");
-
-  try{
-    const form=new FormData();
-    form.append("photo",photoBlob,"photo.jpg");
-
-    const response=await fetch(ENDPOINT,{
-      method:"POST",
-      body:form
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(result => {
+        if (result) resolve(result);
+        else reject(new Error("Не удалось создать фото"));
+      }, "image/jpeg", 0.9);
     });
 
-    if(!response.ok)throw new Error("Upload failed");
+    const form = new FormData();
+    form.append("photo", blob, "photo.jpg");
+
+    const response = await fetch(ENDPOINT, {
+      method: "POST",
+      body: form
+    });
+
+    if (!response.ok) {
+      throw new Error("Ошибка отправки");
+    }
 
     stopCamera();
-    video.hidden=true;
-    preview.hidden=true;
-    sendBtn.hidden=true;
-    retakeBtn.hidden=true;
-    startBtn.hidden=false;
-    startBtn.disabled=false;
-    startBtn.textContent="Сделать ещё фото";
 
-    status("Фото отправлено.");
-  }catch(error){
-    status("Не удалось отправить фото. Попробуй ещё раз.");
-    sendBtn.disabled=false;
-    retakeBtn.disabled=false;
+    video.hidden = true;
+    captureButton.hidden = true;
+    againButton.hidden = false;
+    startButton.hidden = true;
+
+    setStatus("Фото успешно отправлено в Telegram.");
+  } catch (error) {
+    setStatus("Не удалось отправить фото. Проверь интернет и попробуй ещё раз.");
+    captureButton.disabled = false;
+  } finally {
+    sending = false;
   }
-});
+}
 
-window.addEventListener("pagehide",stopCamera);
+function takeAnotherPhoto() {
+  againButton.hidden = true;
+  startButton.hidden = false;
+  startButton.disabled = false;
+  captureButton.hidden = true;
+  captureButton.disabled = false;
+  placeholder.hidden = false;
+
+  setStatus("Нажми «Включить камеру», чтобы сделать новое фото.");
+}
+
+startButton.addEventListener("click", startCamera);
+captureButton.addEventListener("click", takeAndSendPhoto);
+againButton.addEventListener("click", takeAnotherPhoto);
+
+window.addEventListener("pagehide", stopCamera);
 </script>
 </body>
 </html>
